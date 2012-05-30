@@ -12,6 +12,7 @@ package com.mulesoft.quartz.mongo;
 import com.mongodb.*;
 import com.mongodb.MongoException.DuplicateKey;
 import org.bson.types.ObjectId;
+import org.joda.time.DateTime;
 import org.quartz.Calendar;
 import org.quartz.*;
 import org.quartz.Trigger.CompletedExecutionInstruction;
@@ -388,13 +389,13 @@ public class MongoDBJobStore implements JobStore {
         trigger.setKey(triggerKey);
         trigger.setCalendarName((String) dbObject.get(TRIGGER_CALENDAR_NAME));
         trigger.setDescription((String) dbObject.get(TRIGGER_DESCRIPTION));
-        trigger.setEndTime((Date) dbObject.get(TRIGGER_END_TIME));
+        trigger.setEndTime(getDate(dbObject.get(TRIGGER_END_TIME)));
         trigger.setFireInstanceId((String) dbObject.get(TRIGGER_FIRE_INSTANCE_ID));
         trigger.setMisfireInstruction((Integer) dbObject.get(TRIGGER_MISFIRE_INSTRUCTION));
-        trigger.setNextFireTime((Date) dbObject.get(TRIGGER_NEXT_FIRE_TIME));
-        trigger.setPreviousFireTime((Date) dbObject.get(TRIGGER_PREVIOUS_FIRE_TIME));
+        trigger.setNextFireTime(getDate(dbObject.get(TRIGGER_NEXT_FIRE_TIME)));
+        trigger.setPreviousFireTime(getDate(dbObject.get(TRIGGER_PREVIOUS_FIRE_TIME)));
         trigger.setPriority((Integer) dbObject.get(TRIGGER_PRIORITY));
-        trigger.setStartTime((Date) dbObject.get(TRIGGER_START_TIME));
+        trigger.setStartTime(getDate(dbObject.get(TRIGGER_START_TIME)));
 
         trigger = tpd.setExtraPropertiesAfterInstantiation(trigger, dbObject);
 
@@ -406,6 +407,15 @@ public class MongoDBJobStore implements JobStore {
             // job was deleted
             return null;
         }
+    }
+
+    // to avoid problems with Java Mongo Driver decodeHooks
+    private Date getDate(Object obj) {
+        if (obj instanceof Date)
+            return (Date) obj;
+        if (obj instanceof DateTime)
+            return ((DateTime) obj).toDate();
+        throw new IllegalArgumentException("Unknown date format class: " + obj.getClass());
     }
 
     protected ClassLoader getTriggerClassLoader() {
@@ -658,7 +668,7 @@ public class MongoDBJobStore implements JobStore {
     }
 
     protected boolean isTriggerLockExpired(DBObject lock) {
-        Date lockTime = (Date) lock.get(LOCK_TIME);
+        Date lockTime = getDate(lock.get(LOCK_TIME));
         long elaspedTime = System.currentTimeMillis() - lockTime.getTime();
         return (elaspedTime > triggerTimeoutMillis);
     }
