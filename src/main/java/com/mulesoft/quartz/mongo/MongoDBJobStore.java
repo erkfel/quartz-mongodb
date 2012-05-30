@@ -411,6 +411,8 @@ public class MongoDBJobStore implements JobStore {
 
     // to avoid problems with Java Mongo Driver decodeHooks
     private Date getDate(Object obj) {
+        if (obj == null)
+            return (Date) obj;
         if (obj instanceof Date)
             return (Date) obj;
         if (obj instanceof DateTime)
