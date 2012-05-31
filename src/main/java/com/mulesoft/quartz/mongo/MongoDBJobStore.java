@@ -97,6 +97,8 @@ public class MongoDBJobStore implements JobStore {
             dbName = uri.getDatabase();
             username = uri.getUsername();
             password = uri.getPassword();
+            // warning: this store works only in safe mode
+            uri.getOptions().safe = true;
             mongo = new Mongo(uri);
         } catch (UnknownHostException e) {
             throw new SchedulerConfigException("Could not connect to MongoDB", e);
