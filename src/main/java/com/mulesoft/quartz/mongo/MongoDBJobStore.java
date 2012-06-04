@@ -76,6 +76,8 @@ public class MongoDBJobStore implements JobStore {
     private List<TriggerPersistenceHelper> persistenceHelpers = new ArrayList<TriggerPersistenceHelper>();
 
     public void initialize(ClassLoadHelper loadHelper, SchedulerSignaler signaler) throws SchedulerConfigException {
+
+        log.info("Start MongoDBJobStore initialization");
         this.loadHelper = loadHelper;
         this.signaler = signaler;
 
@@ -89,8 +91,11 @@ public class MongoDBJobStore implements JobStore {
 //        }
 
         final String mongoUri = System.getProperty("mongo.db.uri");
-        if (mongoUri == null)
-            throw new SchedulerConfigException("Could not load MongoDB URI");
+        if (mongoUri == null) {
+            final String msg = "Could not load MongoDB URI property";
+            log.error(msg);
+            throw new SchedulerConfigException(msg);
+        }
 
         try {
             final MongoURI uri = new MongoURI(mongoUri);
@@ -101,7 +106,9 @@ public class MongoDBJobStore implements JobStore {
             uri.getOptions().safe = true;
             mongo = new Mongo(uri);
         } catch (UnknownHostException e) {
-            throw new SchedulerConfigException("Could not connect to MongoDB", e);
+            final String msg = "Could not connect to MongoDB";
+            log.error(msg, e);
+            throw new SchedulerConfigException(msg, e);
         }
 
 //        MongoOptions options = new MongoOptions();
@@ -122,7 +129,13 @@ public class MongoDBJobStore implements JobStore {
 
         DB db = mongo.getDB(dbName);
         if (username != null) {
-            db.authenticate(username, password);
+            final boolean authenticate = db.authenticate(username, password);
+            if (authenticate) {
+                log.info("Authentication to MongoDB was successful");
+            } else {
+                log.warn("Authentication to MongoDB was not successful");
+            }
+
         }
         jobCollection = db.getCollection(collectionPrefix + "jobs");
         triggerCollection = db.getCollection(collectionPrefix + "triggers");
@@ -149,6 +162,7 @@ public class MongoDBJobStore implements JobStore {
         keys = new BasicDBObject();
         keys.put(CALENDAR_NAME, 1);
         calendarCollection.ensureIndex(keys, null, true);
+        log.info("MongoDBJobStore was successfully initialized");
     }
 
     public void schedulerStarted() throws SchedulerException {
