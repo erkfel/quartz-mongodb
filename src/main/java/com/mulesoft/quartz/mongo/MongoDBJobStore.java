@@ -161,7 +161,9 @@ public class MongoDBJobStore implements JobStore {
     }
 
     public void shutdown() {
-        mongo.close();
+        if (mongo != null) {
+            mongo.close();
+        }
     }
 
     public boolean supportsPersistence() {
